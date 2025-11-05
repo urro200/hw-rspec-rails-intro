@@ -21,6 +21,33 @@ class MoviesController < ApplicationController
     # default: render 'new' template
   end
 
+  def search_tmdb
+    if params[:title].blank?
+      flash[:warning] = "Please fill in all required fields!"
+      render 'search_tmdb'
+    else
+      @movies = Movie.find_in_tmdb(params)
+      
+      if @movies.empty?
+        flash.now[:notice] = "No movies found with given parameters!"
+      end
+    end
+  end
+  def add_movie
+    # Create a new movie from the params submitted by the form
+    @movie = Movie.new(movie_params)
+    
+    if @movie.save
+      flash[:success] = "#{@movie.title} was successfully added to RottenPotatoes."
+    else
+      # This part is for safety, in case save fails (e.g., validations)
+      flash[:danger] = "Failed to add #{@movie.title}."
+    end
+    
+    # Redirect back to the search page, which will show the flash message
+    redirect_to search_tmdb_movies_path
+  end
+
   def create
     @movie = Movie.create!(movie_params)
     flash[:notice] = "#{@movie.title} was successfully created."
@@ -46,6 +73,10 @@ class MoviesController < ApplicationController
   end
 
   private
+  
+  def movie_params
+    params.require(:movie).permit(:title, :rating, :description, :release_date)
+  end
 
   def force_index_redirect
     return unless !params.key?(:ratings) || !params.key?(:sort_by)
